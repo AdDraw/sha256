@@ -31,6 +31,6 @@ Thus the project was regenerated and moved to a Xilinx Artix-7 100T Arty7 digile
 
 Resource Utilization:
 
-| Family | MAX 10 | Total logic elements | Total combinational functions | Dedicated logic registers | Total registers | Total pins | Total virtual pins |  Totalmemorybits(M9Kblocks) | Embedded Multiplier 9-bit elements | Total PLLs | UFM blocks | ADC blocks |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-|	9,315 | 7,152|	3,079| 3079 | 6  | 0  | 32,768(4) | 0 | 1 | 0 | 0 | 
+| Family  | Total logic elements | Total combinational functions | Dedicated logic registers | Total registers | Total pins | Total virtual pins |  Totalmemorybits(M9Kblocks) | Embedded Multiplier 9-bit elements | Total PLLs | UFM blocks | ADC blocks |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| MAX 10 |	9,315 | 7,152|	3,079| 3079 | 6  | 0  | 32,768(4) | 0 | 1 | 0 | 0 | 
