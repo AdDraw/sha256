@@ -27,3 +27,19 @@ Contains:
 Originally the project was meant to land on the MAX10 FPGA MAXimator Board from KAMAMI but it does not fit.
 Thus the project was regenerated and moved to a Xilinx Artix-7 100T Arty7 digilent board.
 ```
+
+
+Resource Utilization:
+|Family		|MAX 10|
+| --- | --- |
+|Total logic elements|	9,315|
+|Total combinational functions|	7,152|
+|Dedicated logic registers|	3,079|
+|Total registers	|3079|
+|Total pins|6
+|Total virtual pins	|0|
+|Total memory bits	|32,768|
+|Embedded Multiplier 9-bit elements	|0|
+|Total PLLs	|1|
+|UFM blocks	|0|
+|ADC blocks	|0|
