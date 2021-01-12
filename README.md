@@ -22,6 +22,8 @@ Contains:
   - that tests uart functionality
   - for the sha256 algorithm module to test chunk_n>=1 messages  
   - system tb that tests the integration of the componenets
-
+  
+```
 Originally the project was meant to land on the MAX10 FPGA MAXimator Board from KAMAMI but it does not fit.
 Thus the project was regenerated and moved to a Xilinx Artix-7 100T Arty7 digilent board.
+```
