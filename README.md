@@ -36,9 +36,9 @@ Resource Utilization:
 |Total combinational functions|	7,152|
 |Dedicated logic registers|	3,079|
 |Total registers	|3079|
-|Total pins|6
+|Total pins| 6 |
 |Total virtual pins	|0|
-|Total memory bits	|32,768|
+|Total memory bits (M9K blocks)	|32,768(4)|
 |Embedded Multiplier 9-bit elements	|0|
 |Total PLLs	|1|
 |UFM blocks	|0|
