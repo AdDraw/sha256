@@ -46,8 +46,17 @@ SHA256 definition taken from [FIPS 180-2 Secure Hash Standard](https://csrc.nist
 > This flow doesn't allow for pipelining but it was not it's intention since the connection through UART is mainly used for Final Field Testing.
 
 
-#### HW Tested on Linux using *cutecom*
+#### HW Tested on Linux 
+- Reference
 
+![alt text](https://github.com/AdDraw/sha256/blob/main/media/sha256Online_ref.png)
+
+- Result ( connection to Board done using ***cutecom***)
+
+![alt text](https://github.com/AdDraw/sha256/blob/main/media/cutecom_uart_working_example.png)
+
+1. `nice 2 meet you` sent without any END character (such as CR LF etc)
+2. `04` sent as HEX to indicate message end
 
 
 Tried running on 2 FPGAs:
@@ -93,6 +102,8 @@ Thus the project was regenerated and moved to a Xilinx Artix-7 100T Arty7 digile
 | WNS | TNS | WHS | THS | TPWS | Total Power[W]|
 | --- | --- | --- | --- | --- | --- |
 | -0.045 | -0.052 | 0.083 | 0.000 | 0.000 | 0.229 |
+
+![alt text](https://github.com/AdDraw/sha256/blob/main/media/Xilinx_Dashboard.png)
 
 
 #### Helpful Links:
