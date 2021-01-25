@@ -7,10 +7,10 @@ entity main is
 port (
 		clk_i 	: in std_logic;  -- L3
 		rst_ni	: in std_logic;  -- R15
-		
+
 		RXD_o		: out  std_logic; -- B13
 		TXD_i		: in   std_logic; -- A13
-		
+
 		led_dbg_o: out std_logic_vector(1 downto 0)
 			);
 
@@ -20,16 +20,16 @@ end entity;
 architecture beh of main is
 
 	--Components
-	component ram_dp
+	component blk_mem_gen_0
 		PORT
 		(
-			byteena_a	: IN STD_LOGIC_VECTOR (3 DOWNTO 0) 		:=  (OTHERS => '1');
-			clock			: IN STD_LOGIC ;
-			data			: IN STD_LOGIC_VECTOR (31 DOWNTO 0);
-			rdaddress	: IN STD_LOGIC_VECTOR (9  DOWNTO 0);
-			wraddress	: IN STD_LOGIC_VECTOR (9  DOWNTO 0);
-			wren			: IN STD_LOGIC  								:= '0';
-			q				: OUT STD_LOGIC_VECTOR (31 DOWNTO 0)
+			wea            : IN STD_LOGIC_VECTOR (3 DOWNTO 0) 		:=  (OTHERS => '1');
+			clka		   : IN STD_LOGIC ;
+			clkb           : IN STD_LOGIC ;
+			dina           : IN STD_LOGIC_VECTOR (31 DOWNTO 0);
+			addrb	       : IN STD_LOGIC_VECTOR (9  DOWNTO 0);
+			addra	       : IN STD_LOGIC_VECTOR (9  DOWNTO 0);
+			doutb	       : OUT STD_LOGIC_VECTOR (31 DOWNTO 0)
 		);
 
 	end component;
@@ -40,16 +40,16 @@ architecture beh of main is
 				-- Input ports
 				clk_i	 		: in  std_logic;
 				rst_ni 		: in  std_logic;
-				
+
 				--Handshaking
 				vld_chunk_i	: in std_logic;
 				rdy_o			: out std_logic;
 				chunk_id_i 	: in std_logic_vector(5 downto 0);
-				
+
 				--Mem IF
-				mem_addr_o  : out std_logic_vector(3 downto 0); 
+				mem_addr_o  : out std_logic_vector(3 downto 0);
 				mem_rdata_i : in 	std_logic_vector(31 downto 0);
-				
+
 				-- HASH VAL
 				vld_hash_o	: out std_logic;
 				hash_o 		: out std_logic_vector(255 downto 0)
@@ -60,20 +60,20 @@ architecture beh of main is
 	component rs_232 -- tested :)
 		 Port(clk_i 	: in  	STD_LOGIC; -- has to be a 50MHz for BaudRate 9600
 				rst_ni 	: in  	STD_LOGIC;
-				
+
 				-- External TX RX
 				TXD_o 	: out  	STD_LOGIC;
 				RXD_i 	: in  	STD_LOGIC;
-				
+
 				-- Handshaking
 				wvld_i   : in 		std_logic;
 				rvld_o 	: out		std_logic;
 				rdy_o  	: out 	std_logic;
-				
+
 				-- Data
 				data_i	: in 		std_logic_vector(7 downto 0);  -- data to send
 				data_o 	: out 	std_logic_vector(7 downto 0); -- data received
-				
+
 				--DbgLed
 				dbg_led_o : out std_logic_vector(1 downto 0)
 				);
@@ -82,18 +82,18 @@ architecture beh of main is
 	component pll
 		PORT
 		(
-			inclk0	: IN STD_LOGIC;
-			c0			: OUT STD_LOGIC
+			clk_in1	 : IN STD_LOGIC;
+			clk_out1 : OUT STD_LOGIC
 		);
 	end component;
 
 	-- Types
 	type fsm is (IDLE, MSG_IN, MSG_PAD, SHA_256, MSG_OUT);
-	
+
 
 	-- Signals
 	signal state : fsm := IDLE;
-	
+
 	-- GLobal
 	signal clk_50MHz	: std_logic;
 
@@ -119,45 +119,48 @@ architecture beh of main is
 	signal chunk_rdata		: std_logic_vector(31  downto 0);
 	signal chunk_mem_addr	: std_logic_vector(3   downto 0);
 	signal hash					: std_logic_vector(255 downto 0);
-	
-	
+
+
 	-- MAIN SIGNALS
 	signal msg_length 		: std_logic_vector(63 downto 0);
 	signal chunk_cnt			: integer range 0 to 64 := 0;
 	signal chunk_i		 	   : integer range 0 to 64 := 0;
-	
+
 	signal last_waddr			: STD_LOGIC_VECTOR (9 DOWNTO 0);
 	signal last_byte_cnt 	: integer range 0 to 3  	:= 0;
-	
+
 	type mem_wdata_arr is array(0 to 3) of std_logic_vector(7 downto 0);
 	signal wdata_arr : mem_wdata_arr := (others => (others => '0'));
 	type mem_len_arr is array(7 downto 0) of std_logic_vector(7 downto 0);
 	signal msg_len_packed : mem_len_arr := (others => (others => '0'));
-	
+
 	type pad_fsm is (bitappend, zeros, len);
 	signal padding_state : pad_fsm := bitappend;
-	
+
 	signal low32_len : std_logic := '0';
-	
+
 	signal final_hash : std_logic_vector(255 downto 0);
-	type final_hash_pack is array(0 to 31) of std_logic_vector(7 downto 0);
+	type final_hash_pack is array(0 to 63) of std_logic_vector(3 downto 0);
 	signal final_hash_packed : final_hash_pack := (others => (others => '0'));
-	
-	
-	type msg_out_fsm is (NEWLINE_1, NEWLINE_2, DATA, EOT);
+
+
+	type msg_out_fsm is (NEWLINE_1, NEWLINE_2, DATA, NEWLINE_3, NEWLINE_4, EOT);
 	signal uart_send_state : msg_out_fsm := NEWLINE_1;
-	
-	signal uart_i : integer range 0 to 32 := 0;
-	
-	
+
+	signal uart_i : integer range 0 to 64 := 0;
+
+
 	signal lock : std_logic := '0';
-	
-	
+
+	signal pos_leds : std_logic_vector(1 downto 0);
+
 begin
 
+    led_dbg_o <= not pos_leds;
+
 	pll_50_inst : pll
-	port map(inclk0 => clk_i,
-				c0 => clk_50MHz);
+	port map(clk_in1 => clk_i,
+			 clk_out1 => clk_50MHz);
 
 	uart_inst : rs_232
 	port map(clk_i			=> clk_50MHz,
@@ -169,8 +172,8 @@ begin
 				rdy_o 		=> uart_rdy,
 				data_i 		=> uart_wdata,
 				data_o 		=> uart_rdata,
-				dbg_led_o	=> led_dbg_o);
-				
+				dbg_led_o	=> pos_leds);
+
 	sha256_inst : sha256
 	port map(clk_i 		=> clk_50MHz,
 				rst_ni 		=> rst_ni,
@@ -181,60 +184,63 @@ begin
 				mem_rdata_i => chunk_rdata,
 				vld_hash_o	=> vld_hash,
 				hash_o 		=> hash);
-				
-	ram_dp_inst : ram_dp
-	port map(clock 		=> clk_50MHz,
-				byteena_a 	=> mem_byte_en,
-				data 			=> mem_wdata,
-				rdaddress 	=> mem_raddr,
-				wraddress 	=> mem_waddr,
-				wren 			=> mem_we,
-				q 				=> chunk_rdata);
-	
-	
+
+	ram_dp_inst : blk_mem_gen_0
+	port map(  clka 		=> clk_50MHz,
+	           clkb         => clk_50MHz,
+			   wea 	=> mem_byte_en,
+			   dina 			=> mem_wdata,
+			 addrb 	=> mem_raddr,
+			         addra 	=> mem_waddr,
+			 doutb 				=> chunk_rdata);
+
+
 	mem_wdata <= wdata_arr(0) & wdata_arr(1) & wdata_arr(2) & wdata_arr(3);
-	
+
 	mem_len_packing: for i in 0 to 7 generate
 		msg_len_packed(i) <= msg_length(8*(i+1) -1 downto 8*i);
 	end generate;
 
 	fsm_proc: process (clk_50MHz, rst_ni)
 		variable mem_byte_cnt : integer range 0 to 3  	:= 0;
+		variable ascii_symbol : std_logic_vector(7 downto 0) := x"30";
 	begin
 		if rst_ni = '0' then
 			state				<= IDLE;
 			chunk_id 		<= (others => '0');
 			vld_chunk 		<= '0';
 			msg_length 		<= (others => '0');
-			
+
 			chunk_cnt 		<= 0;
-			
+
 			uart_wdata		<= (others => '0');
 			uart_wvld		<= '0';
-			
+
 			mem_waddr 		<= (others => '0');
 			mem_byte_cnt	:=  0;
 			mem_we 			<= '0';
 			wdata_arr 		<= (others => (others => '0'));
 			msg_length		<= (others => '0');
-			
+
 			padding_state 	<= BITAPPEND;
 			chunk_i 			<= 0;
-			
+
 			low32_len 		<= '0';
 			last_waddr		<= (others => '0');
-			
+
 			last_byte_cnt 	<= 0;
-			
+
 			uart_send_state<= NEWLINE_1;
 			uart_i			<= 0;
-			
+
 			final_hash		<= (others => '0');
-			
+
 			lock 				<= '0';
 
+			mem_byte_en      <= (others => '0');
+
 		elsif rising_edge(clk_50MHz) then
-			case state is 
+			case state is
 				when IDLE =>
 					mem_waddr 		<= (others => '0');
 					mem_we 			<= '0';
@@ -243,20 +249,21 @@ begin
 					mem_byte_cnt	:= 0;
 					low32_len 		<= '0';
 					last_byte_cnt 	<= 0;
-					lock 				<= '0';
-					
+					lock 			<= '0';
+					mem_byte_en     <= (others => '0');
+
 					if  uart_rvld = '1' and uart_rdata /= x"04" then -- place 1st MSG CHAR into memory :)
 						state 							<= MSG_IN;
 						wdata_arr(mem_byte_cnt) 	<= uart_rdata;
-						
-						mem_byte_en						<= (others => '0');
+
+						mem_byte_en					<= (others => '0');
 						mem_byte_en(mem_byte_cnt)	<= '1';
-						
+
 						msg_length(63 downto 3) 	<= std_logic_vector(unsigned(msg_length(63 downto 3)) + 1);
 						mem_we 							<= '1';
-						
+
 					end if;
-						
+
 				when MSG_IN =>
 					if uart_rvld = '1' then
 						if uart_rdata = x"04" then -- EOT [0x04, ^D]
@@ -267,7 +274,7 @@ begin
 							state 			<= MSG_PAD;
 						else
 							-- place the value into memory
-							
+
 							if mem_byte_cnt = 3 then
 								mem_byte_cnt := 0;
 								if unsigned(mem_waddr) mod 16 = 13 then
@@ -279,28 +286,28 @@ begin
 							else
 								mem_byte_cnt := mem_byte_cnt + 1;
 							end if;
-						
-							
+
+
 							wdata_arr(mem_byte_cnt)		<= uart_rdata;
 							mem_byte_en						<= (others => '0');
 							mem_byte_en(mem_byte_cnt)	<= '1';
-							
+
 							mem_we							<= '1';
-							
+
 							msg_length(63 downto 3) 	<= std_logic_vector(unsigned(msg_length(63 downto 3)) + 1); -- add 8 every new char
-							
+
 						end if;
 					else
 						mem_we 			<= '0';
 					end if;
-					
+
 			when MSG_PAD =>
 				mem_we <= '1';
 				wdata_arr <= (others => (others => '0'));
-				
-				if chunk_i = chunk_cnt then					
+
+				if chunk_i = chunk_cnt then
 					--1. write "80" to the last waddr
-					case padding_state is 
+					case padding_state is
 						when BITAPPEND =>
 							-- waddr stayes the same
 							mem_waddr <= last_waddr;
@@ -320,31 +327,31 @@ begin
 								when others =>
 									mem_byte_en  	<= "0000";
 							end case;
-							
-							padding_state <= ZEROS;						
+
+							padding_state <= ZEROS;
 						when ZEROS =>
 							-- 2. filling the rest with Zeroes
 							if unsigned(mem_waddr) mod 16 < 13 then
 								mem_byte_en <= "1111";
 								mem_waddr <= std_logic_vector(unsigned(mem_waddr) + 1);
-								
+
 							else
 								padding_state <= LEN;
 							end if;
-						
+
 						when LEN =>
-							
+
 							-- 3. Lenght appended at the end
 							if unsigned(mem_waddr) mod 16 < 15 then
 								mem_waddr <= std_logic_vector(unsigned(mem_waddr) + 1);
-							
+
 								mem_byte_en <= "1111";
 								if low32_len /= '1' then
-									
+
 									for i in 0 to 3 loop
 										wdata_arr(i) 	<= msg_len_packed(7-i);
 									end loop;
-									
+
 									low32_len <= '1';
 								else
 									low32_len 	<= '0';
@@ -353,11 +360,11 @@ begin
 									end loop;
 									state <= SHA_256;
 
-									padding_state <= BITAPPEND; 
+									padding_state <= BITAPPEND;
 									chunk_i <= 0;
 								end if;
 							end if;
-						
+
 						when others =>
 							padding_state <= BITAPPEND;
 					end case;
@@ -373,10 +380,10 @@ begin
 						low32_len <= '0';
 					end if;
 				end if;
-				
+
 				when SHA_256 =>
 					mem_byte_en <= "0000";
-					
+
 					if chunk_i > chunk_cnt then
 						state <= MSG_OUT;
 						vld_chunk <= '0';
@@ -393,56 +400,109 @@ begin
 						end if;
 					end if;
 				when MSG_OUT =>
+				    ascii_symbol := x"00";
+				    mem_byte_en     <= (others => '0');
 					-- set UART VLD
 					if uart_rdy = '1' then
 						-- choose a value to send
 						uart_wvld <= '1';
-						
+
 						if lock = '0' then
 							lock <= '1';
 							case uart_send_state is
 								when NEWLINE_1 =>
+								    uart_i <= 0;
 									uart_wdata 			<= x"0A"; --LF
 									uart_send_state 	<= NEWLINE_2;
-									
+
 								when NEWLINE_2 =>
 									uart_wdata 			<= x"0D"; --CR
-									uart_send_state	<= DATA;
-									
+									uart_send_state	    <= DATA;
+
 								when DATA =>
-									if uart_i = 32 then
-										uart_send_state	<= NEWLINE_1;
-										lock 					<= '0';
-										state					<= IDLE;
-										uart_wvld			<= '0';
-										uart_wdata			<= (others => '0');
-										uart_i 				<=  0;
+									if uart_i = 64 then
+										uart_send_state	<= NEWLINE_3;
+										uart_wdata      <= x"00";
+										uart_i          <= 0;
+										uart_wvld       <= '0';
 									else
-										uart_wdata			<= final_hash_packed(uart_i);
+
+									   case final_hash_packed(uart_i) is
+									       when x"0" =>
+									           ascii_symbol := x"30";
+									       when x"1" =>
+									           ascii_symbol := x"31";
+									       when x"2" =>
+									           ascii_symbol := x"32";
+									       when x"3" =>
+									           ascii_symbol := x"33";
+									       when x"4" =>
+									           ascii_symbol := x"34";
+									       when x"5" =>
+									           ascii_symbol := x"35";
+									       when x"6" =>
+									           ascii_symbol := x"36";
+									       when x"7" =>
+									           ascii_symbol := x"37";
+									       when x"8" =>
+									           ascii_symbol := x"38";
+									       when x"9" =>
+									           ascii_symbol := x"39";
+									       when x"A" =>
+									           ascii_symbol := x"61";
+									       when x"b" =>
+									           ascii_symbol := x"62";
+									       when x"c" =>
+									           ascii_symbol := x"63";
+									       when x"d" =>
+									           ascii_symbol := x"64";
+									       when x"e" =>
+									           ascii_symbol := x"65"; -- e
+									       when x"f" =>
+									           ascii_symbol := x"66"; -- f
+									       when others =>
+						                       ascii_symbol := x"7A";   --z
+									   end case;
+
+										uart_wdata			<= ascii_symbol;
 										uart_i 				<= uart_i + 1;
 									end if;
+							    when NEWLINE_3 =>
+									uart_wdata 			<= x"0A"; --LF
+									uart_send_state 	<= NEWLINE_4;
+
+								when NEWLINE_4 =>
+									uart_wdata 			<= x"0D"; --CR
+									uart_send_state	    <= EOT;
+								when EOT =>
+                                    uart_i              <=  0;
+                                    uart_wvld           <= '0';
+								    state				<= IDLE;
+									uart_send_state	    <= NEWLINE_1;
+									lock                <= '0';
 								when others =>
-									uart_wdata <= x"00";
+									uart_wdata          <= x"00";
+									uart_send_state     <= NEWLINE_1;
 							end case;
-								
+
 						end if;
-							
+
 					else
-						lock 			<= '0';
+						lock 	    <= '0';
 						uart_wvld 	<= '0';
 					end if;
-					
+
 				when others =>
 					state <= IDLE;
 			end case;
 		end if;
-		
-	end process fsm_proc;	
-	
-	final_hash_packing: for i in 0 to 31 generate
-		final_hash_packed(i) <= final_hash(8*(32-i) - 1 downto 8*(31-i));
+
+	end process fsm_proc;
+
+	final_hash_packing: for i in 0 to 63 generate
+		final_hash_packed(i) <= final_hash(4*(64-i) - 1 downto 4*(63-i));
 	end generate;
-	
+
 	mem_raddr <= chunk_id & chunk_mem_addr;
-	
-end beh; 
+
+end beh;

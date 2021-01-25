@@ -59,8 +59,8 @@ ARCHITECTURE behavior OF test_main IS
 	component pll
 			PORT
 		(
-			inclk0		: IN STD_LOGIC  := '0';
-			c0		: OUT STD_LOGIC 
+			clk_in1		: IN STD_LOGIC  := '0';
+			clk_out1		: OUT STD_LOGIC 
 		);
 	end component;
 	
@@ -90,7 +90,7 @@ ARCHITECTURE behavior OF test_main IS
 
 
    -- Clock period definitions for 9600 BaudRate
-   constant clk_i_period : time := 100ns; -- 10 Mhz clock
+   constant clk_i_period : time := 10ns; -- 100 Mhz clock
    constant period : time := 0.10416666ms;
 	
 	type slv_arr64_8 is array(63 downto 0) of std_logic_vector(7 downto 0);
@@ -118,14 +118,14 @@ BEGIN
 			data_i 		=> uart_wdata,
 			data_o 		=> urdata,
 			dbg_led_o 	=> dbld,
-			rdy_o			=> urdy,	
+			rdy_o		=> urdy,	
 			wvld_i		=> uart_wvld,
 			rvld_o		=> urvld
 			);
 			
 	pll_inst: pll PORT MAP(
-			inclk0 => clk_i,
-			c0 => clk_50MHz
+			clk_in1 => clk_i,
+			clk_out1 => clk_50MHz
 			);
 	
    -- Clock process definitions
@@ -181,7 +181,7 @@ BEGIN
       -- insert stimulus here 
 
 	  --WriteTests
-		wait until urdy = '1' and urdy'STABLE and urdata = x"04";
+	    wait for 100ms;
 		
 		assert false report "finished simulation" severity failure;
    end process;
