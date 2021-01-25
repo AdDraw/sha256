@@ -32,8 +32,6 @@ SHA256 definition taken from [FIPS 180-2 Secure Hash Standard](https://csrc.nist
   - system tb that tests the integration of the componenets
     - has no direct comparison of the result vs reference
     - can be used to verify if whole pipeline works
-  
-![alt text](https://github.com/AdDraw/sha256/blob/main/media/sha256.png)
 
 ## Data Flow:
 
