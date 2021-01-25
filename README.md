@@ -33,7 +33,7 @@ SHA256 definition taken from [FIPS 180-2 Secure Hash Standard](https://csrc.nist
     - has no direct comparison of the result vs reference
     - can be used to verify if whole pipeline works
   
-### Data Flow:
+## Data Flow:
 
 1. Data comes in through the UART module in form of 8bit ASCII characters, MSG ends whenever UART receives EOT(0x04) character
 2. When the input msg is complete FSM inside the main module will start preprocesing the message by adding PADDING + placing the total lenght in the last CHUNK
@@ -46,7 +46,7 @@ SHA256 definition taken from [FIPS 180-2 Secure Hash Standard](https://csrc.nist
 > This flow doesn't allow for pipelining but it was not it's intention since the connection through UART is mainly used for Final Field Testing.
 
 
-#### HW Tested on Linux 
+## HW Testing (using Linux)
 - Reference
 
 ![alt text](https://github.com/AdDraw/sha256/blob/main/media/sha256Online_ref.png)
@@ -58,6 +58,7 @@ SHA256 definition taken from [FIPS 180-2 Secure Hash Standard](https://csrc.nist
 1. `nice 2 meet you` sent without any END character (such as CR LF etc)
 2. `04` sent as HEX to indicate message end
 
+## Project Summaries
 
 Tried running on 2 FPGAs:
 - MAX10 (design too big)
@@ -106,6 +107,6 @@ Thus the project was regenerated and moved to a Xilinx Artix-7 100T Arty7 digile
 ![alt text](https://github.com/AdDraw/sha256/blob/main/media/Xilinx_Dashboard.png)
 
 
-#### Helpful Links:
+## Helpful Links:
 - https://github.com/skordal/sha256
 - https://github.com/dsaves/SHA-256 (which helped greatly by providing full intermediate hash table for a specific test msg)
