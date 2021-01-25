@@ -16,11 +16,11 @@ SHA256 definition taken from [FIPS 180-2 Secure Hash Standard](https://csrc.nist
     - no echo functionality
   - RAM to store the soon to be hashed msg
     - msg lenght is limited to 64 chunks
-  - PLL block 
+  - PLL block
     - Altera
-      - inclk  : 10MHz 
+      - inclk  : 10MHz
       - outclk : 50MHz (required frequency for the UART)
-    - Xilinx 
+    - Xilinx
       - inclk  : 100Mhz
       - outclk : 50MHz (required frequency for the UART)
   - sha256 algorithm module
@@ -32,6 +32,8 @@ SHA256 definition taken from [FIPS 180-2 Secure Hash Standard](https://csrc.nist
   - system tb that tests the integration of the componenets
     - has no direct comparison of the result vs reference
     - can be used to verify if whole pipeline works
+
+![alt text](./media/sha256.png)
 
 ## Data Flow:
 
@@ -49,11 +51,11 @@ SHA256 definition taken from [FIPS 180-2 Secure Hash Standard](https://csrc.nist
 ## HW Testing (using Linux)
 - Reference
 
-![alt text](https://github.com/AdDraw/sha256/blob/main/media/sha256Online_ref.png)
+![alt text](./media/sha256Online_ref.png)
 
 - Result ( connection to Board done using ***cutecom***)
 
-![alt text](https://github.com/AdDraw/sha256/blob/main/media/cutecom_uart_working_example.png)
+![alt text](./media/cutecom_uart_working_example.png)
 
 1. `nice 2 meet you` sent without any END character (such as CR LF etc)
 2. `04` sent as HEX to indicate message end
@@ -104,7 +106,7 @@ Thus the project was regenerated and moved to a Xilinx Artix-7 100T Arty7 digile
 | --- | --- | --- | --- | --- | --- |
 | -0.045 | -0.052 | 0.083 | 0.000 | 0.000 | 0.229 |
 
-![alt text](https://github.com/AdDraw/sha256/blob/main/media/Xilinx_Dashboard.png)
+![alt text](./media/Xilinx_Dashboard.png)
 
 
 ## Helpful Links:
